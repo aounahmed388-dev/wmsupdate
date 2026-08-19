@@ -17,31 +17,25 @@
         }
     </script>
 
-    <!-- ===== SUPABASE SDK - Using a more reliable CDN with a fallback ===== -->
+    <!-- ===== SUPABASE SDK ===== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js">
     </script>
     <script>
-        // If the primary CDN fails, try an alternative
+        // Ensure supabase global is available; if not, load dynamically.
         if (typeof supabase === 'undefined') {
-            console.warn('Primary Supabase CDN failed. Trying fallback...');
+            console.warn('Supabase library not loaded via CDN. Loading dynamically...');
             document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"><\/script>');
-        }
-        // If both fail, show a clear error
-        if (typeof supabase === 'undefined') {
-            console.error('Supabase library could not be loaded. Please check your internet connection.');
-            alert('Supabase library could not be loaded. Please check your internet connection and refresh the page.');
         }
     </script>
 
+    <!-- ===== CSS ===== -->
     <style>
-        /* ===== Your existing CSS here ===== */
-        /* (Keep all your CSS styles unchanged) */
+        /* --- Your existing CSS (unchanged) --- */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         :root {
             --primary: #0b1a2e;
             --accent: #3b9eff;
@@ -74,12 +68,10 @@
             --admin-gold: #f5a623;
             --admin-gold-dark: #c47d10;
         }
-
         html {
             font-size: 16px;
             -webkit-text-size-adjust: 100%;
         }
-
         body {
             font-family: var(--font);
             background: var(--bg-body);
@@ -89,8 +81,6 @@
             flex-direction: column;
             line-height: 1.5;
         }
-
-        /* Scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -106,7 +96,6 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #8aa0b8;
         }
-
         .icon-svg {
             display: inline-flex;
             align-items: center;
@@ -120,8 +109,6 @@
             stroke-linecap: round;
             stroke-linejoin: round;
         }
-
-        /* ----- BUTTONS (Touch‑friendly) ----- */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -152,7 +139,6 @@
         .btn:active {
             transform: scale(0.96);
         }
-
         .btn-primary {
             background: var(--accent);
             color: #fff;
@@ -161,7 +147,6 @@
         .btn-primary:hover {
             background: #5aadff;
         }
-
         .btn-outline-light {
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
@@ -172,7 +157,6 @@
             background: rgba(255, 255, 255, 0.16);
             transform: none;
         }
-
         .btn-danger {
             background: var(--red);
             color: #fff;
@@ -181,7 +165,6 @@
         .btn-danger:hover {
             background: var(--red-hover);
         }
-
         .btn-warning {
             background: var(--yellow);
             color: #212529;
@@ -199,7 +182,6 @@
             border-color: #c69500;
             box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.5);
         }
-
         .btn-secondary {
             background: #e9ecef;
             color: #212529;
@@ -208,7 +190,6 @@
         .btn-secondary:hover {
             background: #dee2e6;
         }
-
         .btn-admin {
             background: var(--admin-gold);
             color: #1a1a1a;
@@ -231,7 +212,6 @@
         .btn-admin.logged-in:hover {
             background: #1e7e34;
         }
-
         .btn-delete {
             background: #6c1a2a;
             color: #fff;
@@ -243,8 +223,6 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 16px rgba(108, 26, 42, 0.4);
         }
-
-        /* Ripple effect on buttons */
         .btn::after {
             content: '';
             position: absolute;
@@ -265,8 +243,6 @@
             opacity: 1;
             transition: 0s;
         }
-
-        /* ----- HEADER ----- */
         .app-header {
             background: var(--bg-header);
             color: #fff;
@@ -321,7 +297,6 @@
             padding: 0.4rem 0.8rem;
             min-height: 38px;
         }
-
         .export-dropdown {
             position: relative;
             display: inline-block;
@@ -380,8 +355,6 @@
             border: none;
             border-top: 1px solid var(--border-color);
         }
-
-        /* ----- SEARCH ----- */
         .search-section {
             padding: 1rem 1rem 0.5rem 1rem;
             background: var(--bg-card);
@@ -444,8 +417,6 @@
         #searchInput:not(:placeholder-shown)+.search-hint {
             opacity: 0;
         }
-
-        /* ----- FILTERS – 2 columns on all screens ----- */
         .filters-section {
             padding: 0.6rem 1rem 1rem 1rem;
             background: var(--bg-card);
@@ -506,8 +477,6 @@
         .filter-group input[type="number"] {
             min-height: var(--touch-min);
         }
-
-        /* ===== SUMMARY CARDS ===== */
         .summary-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -569,8 +538,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
-        /* ----- TABLE ----- */
         .table-section {
             flex: 1;
             padding: 1rem 1rem 0.5rem 1rem;
@@ -639,7 +606,6 @@
             color: var(--accent);
             transform: rotate(180deg);
         }
-
         #resultTable td {
             padding: 0.6rem 0.8rem;
             border-bottom: 1px solid #eef2f7;
@@ -657,7 +623,6 @@
         #resultTable tbody tr:hover {
             background: var(--table-row-hover);
         }
-        /* ---- Row highlight animation ---- */
         #resultTable tbody tr.highlighted {
             background: var(--highlight-bg) !important;
             box-shadow: inset 4px 0 0 var(--highlight-border);
@@ -671,8 +636,6 @@
                 background: var(--highlight-bg);
             }
         }
-
-        /* Row click ripple */
         #resultTable tbody tr.row-clicked {
             animation: rowRipple 0.3s ease;
         }
@@ -688,8 +651,6 @@
                 transform: scale(1);
             }
         }
-
-        /* ---- Total Highlighted Row ---- */
         #resultTable tbody tr.total-highlight-row {
             background: #fff8e1 !important;
             border-top: 2px solid var(--highlight-border);
@@ -712,7 +673,6 @@
         #resultTable tbody tr.total-highlight-row.hidden {
             display: none;
         }
-
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -723,7 +683,6 @@
                 transform: translateY(0);
             }
         }
-
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
@@ -740,8 +699,6 @@
         .empty-state p {
             font-size: 0.9rem;
         }
-
-        /* ----- TABLE FOOTER (Pagination) ----- */
         .table-footer {
             display: flex;
             flex-wrap: wrap;
@@ -816,8 +773,6 @@
         #pageSizeSelect:focus {
             border-color: var(--accent);
         }
-
-        /* ----- TOAST NOTIFICATIONS ----- */
         .toast-container {
             position: fixed;
             bottom: 2rem;
@@ -861,7 +816,6 @@
         .toast.info {
             background: var(--accent);
         }
-
         @keyframes slideUpToast {
             from {
                 opacity: 0;
@@ -882,8 +836,6 @@
                 transform: translateY(20px) scale(0.9);
             }
         }
-
-        /* ===== ADMIN LOGIN MODAL ===== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -909,7 +861,6 @@
                 transform: scale(1);
             }
         }
-
         .modal-box {
             background: #fff;
             border-radius: var(--radius);
@@ -1003,8 +954,6 @@
         .modal-box .admin-status strong {
             color: var(--text-primary);
         }
-
-        /* ===== ADMIN PANEL ===== */
         .admin-panel {
             background: #f8fafc;
             border: 1px solid var(--border-color);
@@ -1137,8 +1086,6 @@
             gap: 0.6rem;
             margin-top: 0.8rem;
         }
-
-        /* ===== FOOTER ===== */
         .app-footer {
             background: var(--bg-header);
             color: #8ab4ff;
@@ -1165,11 +1112,6 @@
             opacity: 0.6;
             font-weight: 400;
         }
-
-        /* ================================================================
-               RESPONSIVE BREAKPOINTS
-               ================================================================ */
-
         @media (max-width: 480px) {
             .app-header {
                 padding: 0.6rem 0.8rem;
@@ -1287,7 +1229,6 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
-
         @media (min-width: 481px) {
             .filters-grid {
                 gap: 0.8rem 1rem;
@@ -1299,7 +1240,6 @@
                 min-width: 100%;
             }
         }
-
         @media (min-width: 1025px) {
             .app-header {
                 padding: 1rem 2rem;
@@ -1329,7 +1269,6 @@
                 margin: 0.5rem 2rem;
             }
         }
-
         @media (min-width: 1600px) {
             .app-header {
                 padding: 1.2rem 3rem;
@@ -1354,7 +1293,6 @@
                 margin: 0.5rem 3rem;
             }
         }
-
         @media print {
             .app-header,
             .search-section,
@@ -1403,37 +1341,30 @@
             <span class="badge" id="dataSourceBadge" style="background:rgba(59,158,255,0.2);color:#8abfff;">Loading…</span>
         </div>
         <div class="header-right">
-            <!-- Admin Button -->
             <button class="btn btn-admin" id="adminBtn">
                 <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span id="adminBtnText">Admin</span>
             </button>
-
             <button class="btn btn-outline-light" id="toggleFiltersBtn">
                 <svg class="icon-svg" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 13 10 21 14 18 14 13 22 3"/></svg>
                 <span>Filters</span>
             </button>
-
-            <button class="btn btn-secondary" id="resetAllBtn" title="Reset all filters, search, highlights, and sorting">
+            <button class="btn btn-secondary" id="resetAllBtn">
                 <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                 <span>Reset</span>
             </button>
-
             <button class="btn btn-warning" id="highlightToggleBtn">
                 <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                 <span id="highlightBtnText">Highlighted</span>
             </button>
-
             <button class="btn btn-danger" id="clearHighlightsBtn">
                 <svg class="icon-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 <span>Clear</span>
             </button>
-
-            <button class="btn btn-delete" id="deleteDataBtn" title="Delete all saved data from IndexedDB">
+            <button class="btn btn-delete" id="deleteDataBtn">
                 <svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 <span>Delete</span>
             </button>
-
             <div class="export-dropdown">
                 <button class="btn btn-outline-light" id="exportBtn">
                     <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1451,7 +1382,7 @@
         </div>
     </header>
 
-    <!-- ===== ADMIN PANEL (visible only when logged in) ===== -->
+    <!-- ===== ADMIN PANEL ===== -->
     <div id="adminPanelContainer" style="display:none;">
         <div class="admin-panel" id="adminPanel">
             <div class="admin-panel-header">
@@ -1464,7 +1395,6 @@
                     Logout
                 </button>
             </div>
-
             <div class="admin-stats">
                 <div class="admin-stat">
                     <div class="stat-label">Current File</div>
@@ -1479,7 +1409,6 @@
                     <div class="stat-value" id="adminLastUpdated">—</div>
                 </div>
             </div>
-
             <div class="admin-upload-area">
                 <div class="file-input-wrapper">
                     <input type="file" id="adminFileInput" accept=".xlsx,.xls,.csv" />
@@ -1489,9 +1418,7 @@
                     Import / Update Data
                 </button>
             </div>
-
             <div class="admin-status-msg" id="adminStatusMsg">Status: Ready</div>
-
             <div class="admin-actions">
                 <button class="btn btn-secondary" id="adminRefreshBtn" style="min-height:36px;font-size:0.75rem;">
                     <svg class="icon-svg" viewBox="0 0 24 24" style="width:1em;height:1em;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -1614,7 +1541,7 @@
         </div>
     </div>
 
-    <!-- ===== TOAST CONTAINER ===== -->
+    <!-- ===== TOAST ===== -->
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- ===== FOOTER ===== -->
@@ -1622,7 +1549,7 @@
         <span>
             Developed with <span class="heart">❤</span> by <span class="name">Aoun Ahmed</span>
         </span>
-        <span class="version">v6.0 · Supabase + Admin Panel</span>
+        <span class="version">v6.1 · Flexible Column Mapping</span>
     </footer>
 
     <!-- ===== LOADING OVERLAY ===== -->
@@ -1632,14 +1559,14 @@
     </div>
 
     <!-- ================================================================
-    SCRIPT – Warehouse Inventory with Supabase + Admin Panel (FIXED)
+    SCRIPT – Full Application with Fixed Column Mapping
     ================================================================ -->
     <script>
         (function() {
             'use strict';
 
             // ============================================================
-            //  SUPABASE CONFIGURATION
+            //  SUPABASE CONFIG
             // ============================================================
             const SUPABASE_URL = 'https://hquykobwsnpdkgottjnr.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxdXlrb2J3c25wZGtnb3R0am5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTc5OTQsImV4cCI6MjEwMjczMzk5NH0.qf9XhPEOSRfiLQB0i5IvGZSQXEp7b71Oezj-EEy12Ww';
@@ -1673,7 +1600,6 @@
             const clearHighlightsBtn = document.getElementById('clearHighlightsBtn');
             const toastContainer = document.getElementById('toastContainer');
 
-            // Admin
             const adminBtn = document.getElementById('adminBtn');
             const adminBtnText = document.getElementById('adminBtnText');
             const loginModal = document.getElementById('loginModal');
@@ -1694,7 +1620,6 @@
             const adminLastUpdated = document.getElementById('adminLastUpdated');
             const adminRefreshBtn = document.getElementById('adminRefreshBtn');
 
-            // Filters
             const filterLocation = document.getElementById('filterLocation');
             const filterModel = document.getElementById('filterModel');
             const filterPlacedBy = document.getElementById('filterPlacedBy');
@@ -1752,7 +1677,51 @@
             };
 
             // ============================================================
-            //  TOAST SYSTEM
+            //  COLUMN MAPPING (flexible)
+            // ============================================================
+            const COLUMN_MAPPING = {
+                'Location': ['Location'],
+                'Model Number': ['Model Number', 'ModelNumber'],
+                'Boxes': ['Boxes'],
+                'Items/Box': ['Items/Box', 'Items per Box'],
+                'Total Items': ['Total Items'],
+                'Carton CBM': ['Carton CBM'],
+                'Box Rate': ['Box Rate (USD)', 'Box Rate'],
+                'Valuation': ['Valuation (Boxes)', 'Valuation'],
+                'Placed By': ['Placed By'],
+                'Placement Date': ['Placement Date'],
+                'Placement Time': ['Placement Time'],
+                'Age Placed': ['Age Placed'],
+                'Received Date': ['Received Date'],
+                'Received Time': ['Received Time'],
+                'Age Received': ['Age Received'],
+                'Pallet Serial': ['Pallet Serial'],
+                'Received Department': ['Received From Department', 'Received Department'],
+                'Production Floor': ['Production Floor'],
+                'Item ID': ['Item Id', 'Item ID']
+            };
+
+            function buildRowFromExcel(row) {
+                const obj = {};
+                ALL_COLUMNS.forEach(col => {
+                    let found = false;
+                    const candidates = COLUMN_MAPPING[col] || [col];
+                    for (const candidate of candidates) {
+                        if (row[candidate] !== undefined) {
+                            obj[col] = row[candidate];
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        obj[col] = '';
+                    }
+                });
+                return obj;
+            }
+
+            // ============================================================
+            //  TOAST
             // ============================================================
             function showToast(message, type = 'info', duration = 3000) {
                 const toast = document.createElement('div');
@@ -1917,7 +1886,7 @@
             }
 
             // ============================================================
-            //  HIGHLIGHT PERSISTENCE (localStorage)
+            //  HIGHLIGHT PERSISTENCE
             // ============================================================
             function saveHighlights() {
                 const keys = [];
@@ -1957,14 +1926,10 @@
             }
 
             // ============================================================
-            //  SUPABASE INIT (FIXED - handles missing library gracefully)
+            //  SUPABASE INIT (fixes)
             // ============================================================
             function initSupabase() {
-                // Check if the Supabase library is available globally
-                // The UMD build exposes 'supabase' as a global.
                 let supabaseLib = null;
-
-                // Try multiple possible global names
                 if (typeof supabase !== 'undefined') {
                     supabaseLib = supabase;
                 } else if (typeof window.supabase !== 'undefined') {
@@ -1974,10 +1939,7 @@
                 } else if (typeof window.Supabase !== 'undefined') {
                     supabaseLib = window.Supabase;
                 }
-
-                // If still not found, check if the library might have been loaded but not assigned
                 if (!supabaseLib) {
-                    // Try to find it in the global scope
                     const globalKeys = Object.keys(window);
                     for (const key of globalKeys) {
                         if (key.toLowerCase().includes('supabase') && typeof window[key] === 'object' && window[key] !==
@@ -1990,18 +1952,15 @@
                         }
                     }
                 }
-
                 if (!supabaseLib) {
-                    console.error('Supabase library not found. Please check your internet connection.');
-                    showToast('Supabase library not loaded. Please refresh the page or check your internet connection.',
-                        'error', 5000);
+                    console.error('Supabase library not found.');
+                    showToast('Supabase library not loaded. Please refresh or check internet.', 'error', 5000);
                     return null;
                 }
-
                 try {
                     if (typeof supabaseLib.createClient !== 'function') {
                         console.error('Invalid Supabase library: createClient missing.');
-                        showToast('Invalid Supabase library. Please refresh the page.', 'error', 5000);
+                        showToast('Invalid Supabase library. Please refresh.', 'error', 5000);
                         return null;
                     }
                     const client = supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -2063,7 +2022,7 @@
             async function loginAdmin(email, password) {
                 if (!supabaseClient) {
                     if (loginError) {
-                        loginError.textContent = 'Supabase not configured. Please check your configuration.';
+                        loginError.textContent = 'Supabase not configured.';
                         loginError.classList.add('visible');
                     }
                     return false;
@@ -2143,7 +2102,6 @@
                     if (adminBtn) adminBtn.classList.remove('logged-in');
                     if (adminPanelContainer) adminPanelContainer.style.display = 'none';
                 }
-                // Show/hide import controls for non-admins
                 const isAuth = loggedIn && isAdmin;
                 if (importBtn) {
                     importBtn.style.display = isAuth ? 'inline-flex' : 'none';
@@ -2154,7 +2112,7 @@
             }
 
             // ============================================================
-            //  SUPABASE DATA OPERATIONS
+            //  SUPABASE DATA OPS
             // ============================================================
             async function loadDataFromSupabase() {
                 if (!supabaseClient) {
@@ -2382,7 +2340,7 @@
             }
 
             // ============================================================
-            //  APPLY FILTERS AND RENDER
+            //  FILTERS AND RENDER
             // ============================================================
             function applyFiltersAndRender() {
                 const term = searchInput ? searchInput.value : '';
@@ -2423,9 +2381,6 @@
                 updateAdminStats();
             }
 
-            // ============================================================
-            //  SUMMARY
-            // ============================================================
             function updateSummary() {
                 const total = filteredData.length;
                 let boxes = 0;
@@ -2437,9 +2392,6 @@
                 if (recordBadge) recordBadge.textContent = allData.length + ' records';
             }
 
-            // ============================================================
-            //  RENDER TABLE
-            // ============================================================
             function renderTable() {
                 const total = filteredData.length;
                 const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -2480,7 +2432,6 @@
                     tableHead.appendChild(headerRow);
                 }
 
-                // Sort indicators
                 document.querySelectorAll('#tableHead th').forEach(th => {
                     th.classList.remove('sorted-asc', 'sorted-desc');
                     if (th.dataset.col === sortKey) {
@@ -2530,7 +2481,6 @@
 
                     if (tableBody) {
                         tableBody.innerHTML = html;
-
                         const rows = tableBody.querySelectorAll('tr:not(.total-highlight-row)');
                         rows.forEach((tr, idx) => {
                             tr.addEventListener('click', function() {
@@ -2601,7 +2551,7 @@
             }
 
             // ============================================================
-            //  CLEAR FILTERS
+            //  RESET
             // ============================================================
             function clearFilterInputs() {
                 if (filterLocation) filterLocation.value = '';
@@ -2614,9 +2564,6 @@
                 if (filterBoxMax) filterBoxMax.value = '';
             }
 
-            // ============================================================
-            //  RESET ALL
-            // ============================================================
             function resetAll() {
                 clearFilterInputs();
                 if (searchInput) searchInput.value = '';
@@ -2632,7 +2579,7 @@
             }
 
             // ============================================================
-            //  DELETE DATA (Admin only)
+            //  DELETE DATA (admin only)
             // ============================================================
             async function deleteAllData() {
                 if (!isAdmin) {
@@ -2841,7 +2788,7 @@
             }
 
             // ============================================================
-            //  ADMIN FILE IMPORT HANDLER
+            //  ADMIN FILE IMPORT HANDLER (FIXED with column mapping)
             // ============================================================
             function handleAdminFileImport(file) {
                 if (!isAdmin) {
@@ -2870,25 +2817,23 @@
                             return;
                         }
 
-                        const firstRow = json[0];
-                        const missingCols = ALL_COLUMNS.filter(col => !(col in firstRow));
-                        if (missingCols.length > 0) {
+                        // Map each row using the flexible column mapping
+                        const newData = json.map(row => buildRowFromExcel(row));
+
+                        // Optional: check that critical columns have data
+                        const criticalCols = ['Location', 'Model Number', 'Boxes', 'Pallet Serial'];
+                        const missingCritical = criticalCols.filter(col => {
+                            return newData.every(r => r[col] === '' || r[col] === undefined || r[col] === null);
+                        });
+                        if (missingCritical.length > 0) {
                             if (adminStatusMsg) {
                                 adminStatusMsg.textContent =
-                                    `❌ Missing columns: ${missingCols.join(', ')}. Please ensure the file has the correct structure.`;
+                                    `⚠️ Some critical columns appear empty: ${missingCritical.join(', ')}. Please check the file.`;
                                 adminStatusMsg.className = 'admin-status-msg error';
                             }
-                            showToast('Invalid file structure. Missing required columns.', 'error', 4000);
-                            return;
+                            showToast('File may be missing required columns. Check the status message.', 'warning', 4000);
+                            // Continue anyway, but warn
                         }
-
-                        const newData = json.map(row => {
-                            const obj = {};
-                            ALL_COLUMNS.forEach(col => {
-                                obj[col] = row[col] !== undefined ? row[col] : '';
-                            });
-                            return obj;
-                        });
 
                         const fileName = file.name || 'Unknown';
                         const success = await importDataToSupabase(newData, fileName);
@@ -2914,7 +2859,7 @@
             }
 
             // ============================================================
-            //  LEGACY INDEXEDDB HELPERS (fallback)
+            //  INDEXEDDB HELPERS (fallback)
             // ============================================================
             const DB_NAME = 'WarehouseInventoryDB';
             const STORE_NAME = 'inventoryData';
@@ -2954,10 +2899,9 @@
             //  INIT
             // ============================================================
             async function init() {
-                // Setup Supabase
                 supabaseClient = initSupabase();
 
-                // Attach uppercase enforcement (only if elements exist)
+                // Uppercase
                 const textInputs = [
                     searchInput,
                     filterLocation,
@@ -2971,7 +2915,7 @@
                     }
                 });
 
-                // --- Admin Login ---
+                // Admin Login
                 if (adminBtn) {
                     adminBtn.addEventListener('click', function() {
                         if (isAdmin) {
@@ -3035,7 +2979,7 @@
                     adminLogoutBtn.addEventListener('click', logoutAdmin);
                 }
 
-                // --- Admin Panel: File Import ---
+                // Admin File Import
                 if (adminFileInput) {
                     adminFileInput.addEventListener('change', function(e) {
                         if (this.files && this.files[0]) {
@@ -3071,7 +3015,7 @@
                     });
                 }
 
-                // --- Legacy Import (now hidden for non-admins) ---
+                // Legacy import (hidden for non-admins)
                 if (importBtn) {
                     importBtn.addEventListener('click', function() {
                         if (!isAdmin) {
@@ -3096,12 +3040,12 @@
                     });
                 }
 
-                // --- Search ---
+                // Search
                 if (searchInput) {
                     searchInput.addEventListener('input', debounce(applyFiltersAndRender, 200));
                 }
 
-                // --- Filters ---
+                // Filters
                 const filterInputs = [
                     filterLocation, filterModel, filterPlacedBy, filterPallet,
                     filterPlaceFrom, filterPlaceTo, filterBoxMin, filterBoxMax
@@ -3113,7 +3057,7 @@
                     }
                 });
 
-                // --- Toggle Filters ---
+                // Toggle Filters
                 let filtersVisible = true;
                 if (toggleFiltersBtn) {
                     toggleFiltersBtn.addEventListener('click', function() {
@@ -3124,17 +3068,17 @@
                     });
                 }
 
-                // --- Reset All ---
+                // Reset All
                 if (resetAllBtn) {
                     resetAllBtn.addEventListener('click', resetAll);
                 }
 
-                // --- Delete Data (Admin only) ---
+                // Delete Data
                 if (deleteDataBtn) {
                     deleteDataBtn.addEventListener('click', deleteAllData);
                 }
 
-                // --- Highlight controls ---
+                // Highlight controls
                 if (highlightToggleBtn) {
                     highlightToggleBtn.addEventListener('click', toggleHighlightFilter);
                 }
@@ -3142,7 +3086,7 @@
                     clearHighlightsBtn.addEventListener('click', clearHighlights);
                 }
 
-                // --- Pagination ---
+                // Pagination
                 if (pagePrev) {
                     pagePrev.addEventListener('click', function() {
                         if (currentPage > 1) { currentPage--;
@@ -3164,7 +3108,7 @@
                     });
                 }
 
-                // --- Export ---
+                // Export
                 if (exportBtn) {
                     exportBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
@@ -3185,7 +3129,7 @@
                     });
                 }
 
-                // --- Keyboard shortcuts ---
+                // Keyboard shortcuts
                 document.addEventListener('keydown', function(e) {
                     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                         e.preventDefault();
@@ -3202,11 +3146,11 @@
                     }
                 });
 
-                // --- Check auth and load data ---
+                // Auth and load
                 await checkAuth();
                 await loadDataFromSupabase();
 
-                // If no data in Supabase and we have IndexedDB data, offer to import
+                // Migrate from IndexedDB if needed
                 if (allData.length === 0 && isAdmin) {
                     try {
                         const savedData = await loadDataFromDB();
@@ -3229,7 +3173,6 @@
                     }
                 }
 
-                // Update UI
                 updateAdminStats();
                 if (dataSourceBadge) {
                     dataSourceBadge.textContent = allData.length > 0 ?
@@ -3247,11 +3190,9 @@
             // ============================================================
             //  START
             // ============================================================
-            // Wait for the DOM and any dynamically loaded scripts
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', init);
             } else {
-                // DOM already loaded, but we might need to wait for scripts
                 setTimeout(init, 100);
             }
 
