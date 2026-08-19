@@ -1582,7 +1582,7 @@
     </div>
 
     <!-- ================================================================
-    SCRIPT – Full Application with Robust Date Handling
+    SCRIPT – Full Application with Serial Number Column
     ================================================================ -->
     <script>
         (function() {
@@ -1744,9 +1744,7 @@
                 }
                 // If it's an ISO string with T (e.g., "2026-08-07T00:00:00.000Z")
                 if (typeof val === 'string' && val.includes('T')) {
-                    // Extract the date part (before T)
                     const datePart = val.split('T')[0];
-                    // If that is a valid date, return it; otherwise fallback.
                     if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
                         return datePart;
                     }
@@ -1764,13 +1762,12 @@
                 return `${y}-${m}-${day}`;
             }
 
-            // For admin stats display (human readable)
             function formatDateForDisplay(val) {
                 const str = formatShortDate(val);
                 if (!str || str === '—') return '—';
                 const parts = str.split('-');
                 if (parts.length === 3) {
-                    const d = new Date(Date.UTC(parts[0], parts[1]-1, parts[2]));
+                    const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
                     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
                 }
                 return str;
@@ -1787,12 +1784,10 @@
                     for (const candidate of candidates) {
                         if (row[candidate] !== undefined) {
                             let value = row[candidate];
-                            // Convert dates for specific columns
                             if (col === 'Placement Date' || col === 'Received Date') {
                                 if (typeof value === 'number' && value > 0 && value < 50000) {
                                     value = excelSerialToDateString(value);
                                 } else if (typeof value === 'string') {
-                                    // If it's a string, try to parse and format to YYYY-MM-DD
                                     const d = new Date(value);
                                     if (!isNaN(d.getTime())) {
                                         value = formatShortDate(d);
@@ -2214,7 +2209,6 @@
                         dataSourceBadge.style.color = '#8abfff';
                     }
 
-                    // Get current batch ID
                     const { data: batchData, error: batchError } = await supabaseClient
                         .from('app_state')
                         .select('value')
@@ -2242,7 +2236,6 @@
 
                     currentBatchId = batchId;
 
-                    // ----- PAGINATION TO FETCH ALL ROWS -----
                     const PAGE_SIZE = 1000;
                     let allRows = [];
                     let start = 0;
@@ -2278,7 +2271,6 @@
                         showToast('No data found in Supabase', 'warning', 3000);
                     }
 
-                    // Get last updated info
                     const { data: updatedData, error: updatedError } = await supabaseClient
                         .from('app_state')
                         .select('value')
@@ -2424,7 +2416,7 @@
             }
 
             // ============================================================
-            //  FILTERS AND RENDER
+            //  FILTERS AND RENDER (with Serial Number column)
             // ============================================================
             function applyFiltersAndRender() {
                 const term = searchInput ? searchInput.value : '';
@@ -2484,8 +2476,15 @@
                 const end = Math.min(start + pageSize, total);
                 const pageData = filteredData.slice(start, end);
 
-                // Header
+                // Build header row: first column = S.No
                 const headerRow = document.createElement('tr');
+                const snTh = document.createElement('th');
+                snTh.textContent = 'S.No';
+                snTh.style.width = '50px';
+                snTh.style.textAlign = 'center';
+                snTh.style.cursor = 'default';
+                headerRow.appendChild(snTh);
+
                 DISPLAY_COLUMNS.forEach(col => {
                     const th = document.createElement('th');
                     th.textContent = HEADER_LABELS[col] || col;
@@ -2511,11 +2510,13 @@
                     });
                     headerRow.appendChild(th);
                 });
+
                 if (tableHead) {
                     tableHead.innerHTML = '';
                     tableHead.appendChild(headerRow);
                 }
 
+                // Update sort indicators
                 document.querySelectorAll('#tableHead th').forEach(th => {
                     th.classList.remove('sorted-asc', 'sorted-desc');
                     if (th.dataset.col === sortKey) {
@@ -2530,7 +2531,7 @@
                 if (pageData.length === 0) {
                     if (tableBody) {
                         tableBody.innerHTML =
-                            `<tr><td colspan="${DISPLAY_COLUMNS.length}" class="empty-state">
+                            `<tr><td colspan="${DISPLAY_COLUMNS.length + 1}" class="empty-state">
                                 <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                                 <p>${allData.length === 0 ? 'No data loaded — import a file to begin.' : 'No matching records'}</p>
                             </td></tr>`;
@@ -2539,10 +2540,11 @@
                     let html = '';
                     pageData.forEach((row, index) => {
                         const isHighlighted = highlightedRows.has(row);
+                        const rowNum = start + index + 1;
                         html += `<tr data-rowid="${index}" class="${isHighlighted ? 'highlighted' : ''}">`;
+                        html += `<td style="text-align:center;">${rowNum}</td>`;
                         DISPLAY_COLUMNS.forEach(col => {
                             let val = row[col] !== undefined && row[col] !== null ? row[col] : '';
-                            // For date columns, use formatShortDate (which handles strings)
                             if (col === 'Placement Date' || col === 'Received Date') {
                                 val = formatShortDate(val);
                             }
@@ -2553,6 +2555,7 @@
 
                     const showTotalRow = highlightedBoxes > 0;
                     html += `<tr class="total-highlight-row ${showTotalRow ? '' : 'hidden'}">`;
+                    html += `<td></td>`; // empty cell for serial number
                     DISPLAY_COLUMNS.forEach((col, idx) => {
                         if (idx === 0) {
                             html += `<td><strong>Total</strong></td>`;
@@ -2789,17 +2792,19 @@
                     if (isHighlightedExport) html += `<p><em>Exporting highlighted rows only</em></p>`;
                     const headers = DISPLAY_COLUMNS.map(col => HEADER_LABELS[col] || col);
                     html +=
-                        `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
-                    dataToExport.forEach(row => {
-                        html += '<tr>' + DISPLAY_COLUMNS.map(c => {
+                        `<table><thead><tr><th>S.No</th>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+                    dataToExport.forEach((row, index) => {
+                        html += `<tr><td>${index+1}</td>`;
+                        DISPLAY_COLUMNS.forEach(c => {
                             let val = row[c] || '';
                             if (c === 'Placement Date' || c === 'Received Date') {
                                 val = formatShortDate(val);
                             }
-                            return `<td>${String(val)}</td>`;
-                        }).join('') + '</tr>';
+                            html += `<td>${String(val)}</td>`;
+                        });
+                        html += '</tr>';
                     });
-                    html += '<tr class="total-row">';
+                    html += '<tr class="total-row"><td></td>';
                     DISPLAY_COLUMNS.forEach((col, idx) => {
                         if (idx === 0) {
                             html += `<td><strong>TOTAL</strong></td>`;
@@ -2863,7 +2868,7 @@
             }
 
             // ============================================================
-            //  ADMIN FILE IMPORT HANDLER (with cellDates: false)
+            //  ADMIN FILE IMPORT HANDLER
             // ============================================================
             function handleAdminFileImport(file) {
                 if (!isAdmin) {
@@ -2878,7 +2883,6 @@
                             adminStatusMsg.className = 'admin-status-msg info';
                         }
                         const data = new Uint8Array(e.target.result);
-                        // CRITICAL: cellDates: false to keep dates as serial numbers
                         const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                         const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
@@ -2892,7 +2896,6 @@
                             return;
                         }
 
-                        // Build rows with date conversion
                         const newData = json.map(row => buildRowFromExcel(row));
 
                         const criticalCols = ['Location', 'Model Number', 'Boxes', 'Pallet Serial'];
@@ -2974,7 +2977,6 @@
             async function init() {
                 supabaseClient = initSupabase();
 
-                // Uppercase
                 const textInputs = [
                     searchInput,
                     filterLocation,
