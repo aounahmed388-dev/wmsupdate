@@ -2259,7 +2259,7 @@
                         data: row
                     }));
 
-                    const chunkSize = 500;
+                    const chunkSize = 100;
                     let insertedCount = 0;
                     for (let i = 0; i < items.length; i += chunkSize) {
                         const chunk = items.slice(i, i + chunkSize);
