@@ -1630,9 +1630,7 @@
 
             // ============================================================
             //  SUPABASE CONFIGURATION
-            //  ⚠️  Replace these values with your own Supabase project credentials.
-            //  The anon key is safe to expose in frontend code.
-            //  DO NOT put the service_role key here.
+            //  ⚠️  These values are provided by the user.
             // ============================================================
             const SUPABASE_URL = 'https://hquykobwsnpdkgottjnr.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxdXlrb2J3c25wZGtnb3R0am5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTc5OTQsImV4cCI6MjEwMjczMzk5NH0.qf9XhPEOSRfiLQB0i5IvGZSQXEp7b71Oezj-EEy12Ww';
@@ -1751,7 +1749,11 @@
                 const toast = document.createElement('div');
                 toast.className = `toast ${type}`;
                 toast.textContent = message;
-                toastContainer.appendChild(toast);
+                if (toastContainer) {
+                    toastContainer.appendChild(toast);
+                } else {
+                    console.log('[TOAST]', type, message);
+                }
                 setTimeout(() => {
                     toast.classList.add('hide');
                     setTimeout(() => toast.remove(), 300);
@@ -1946,31 +1948,34 @@
             }
 
             // ============================================================
-            //  SUPABASE INIT
+            //  SUPABASE INIT (FIXED)
             // ============================================================
             function initSupabase() {
-                if (typeof supabaseClient === 'undefined' && typeof SUPABASE_URL !== 'undefined') {
-                    try {
-                        supabase = supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    } catch (e) {
-                        console.error('Supabase init error:', e);
-                        showToast('Failed to initialize Supabase. Check your configuration.', 'error', 5000);
-                    }
-                } else if (typeof supabaseClient !== 'undefined') {
-                    try {
-                        supabase = supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                    } catch (e) {
-                        console.error('Supabase init error:', e);
-                    }
+                // The Supabase CDN exposes the library globally as `supabase`
+                if (typeof supabase === 'undefined' || typeof supabase.createClient !== 'function') {
+                    console.warn('Supabase library not loaded or invalid.');
+                    showToast('Supabase library not loaded. Check your configuration.', 'error', 5000);
+                    return null;
                 }
-                return supabase;
+                try {
+                    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    console.log('Supabase initialized successfully');
+                    return client;
+                } catch (e) {
+                    console.error('Supabase init error:', e);
+                    showToast('Failed to initialize Supabase. Check your configuration.', 'error', 5000);
+                    return null;
+                }
             }
 
             // ============================================================
             //  AUTH
             // ============================================================
             async function checkAuth() {
-                if (!supabase) return;
+                if (!supabase) {
+                    updateAdminUI(false);
+                    return;
+                }
                 try {
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
@@ -2011,49 +2016,59 @@
 
             async function loginAdmin(email, password) {
                 if (!supabase) {
-                    loginError.textContent = 'Supabase not configured. Please check your configuration.';
-                    loginError.classList.add('visible');
+                    if (loginError) {
+                        loginError.textContent = 'Supabase not configured. Please check your configuration.';
+                        loginError.classList.add('visible');
+                    }
                     return false;
                 }
                 try {
-                    loginBtn.disabled = true;
-                    loginBtn.textContent = 'Signing in…';
-                    loginError.classList.remove('visible');
+                    if (loginBtn) {
+                        loginBtn.disabled = true;
+                        loginBtn.textContent = 'Signing in…';
+                    }
+                    if (loginError) loginError.classList.remove('visible');
+
                     const { data, error } = await supabase.auth.signInWithPassword({
                         email: email.trim(),
                         password: password
                     });
                     if (error) throw error;
+
                     if (data.user) {
                         currentUser = data.user;
                         await checkAdminRole(data.user);
                         if (isAdmin) {
-                            loginModal.classList.remove('active');
+                            if (loginModal) loginModal.classList.remove('active');
                             updateAdminUI(true);
                             showToast(`Welcome, ${currentUser.email}`, 'success', 2500);
-                            // Refresh data after login
                             await loadDataFromSupabase();
                             return true;
                         } else {
-                            // Log out if not admin
                             await supabase.auth.signOut();
                             currentUser = null;
                             isAdmin = false;
-                            loginError.textContent = 'You do not have admin privileges.';
-                            loginError.classList.add('visible');
+                            if (loginError) {
+                                loginError.textContent = 'You do not have admin privileges.';
+                                loginError.classList.add('visible');
+                            }
                             updateAdminUI(false);
                             return false;
                         }
                     }
                     return false;
                 } catch (err) {
-                    loginError.textContent = err.message || 'Login failed. Please check your credentials.';
-                    loginError.classList.add('visible');
+                    if (loginError) {
+                        loginError.textContent = err.message || 'Login failed. Please check your credentials.';
+                        loginError.classList.add('visible');
+                    }
                     return false;
                 } finally {
-                    loginBtn.disabled = false;
-                    loginBtn.innerHTML =
-                        '<svg class="icon-svg" viewBox="0 0 24 24" style="width:1em;height:1em;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+                    if (loginBtn) {
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML =
+                            '<svg class="icon-svg" viewBox="0 0 24 24" style="width:1em;height:1em;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In';
+                    }
                 }
             }
 
@@ -2065,7 +2080,6 @@
                     isAdmin = false;
                     updateAdminUI(false);
                     showToast('Logged out successfully', 'info', 2000);
-                    // Refresh data (viewer mode)
                     await loadDataFromSupabase();
                 } catch (err) {
                     showToast('Logout error: ' + err.message, 'error', 3000);
@@ -2074,27 +2088,23 @@
 
             function updateAdminUI(loggedIn) {
                 if (loggedIn && isAdmin) {
-                    adminBtnText.textContent = 'Admin ✓';
-                    adminBtn.classList.add('logged-in');
-                    adminPanelContainer.style.display = 'block';
-                    // Update admin stats
+                    if (adminBtnText) adminBtnText.textContent = 'Admin ✓';
+                    if (adminBtn) adminBtn.classList.add('logged-in');
+                    if (adminPanelContainer) adminPanelContainer.style.display = 'block';
                     updateAdminStats();
                 } else {
-                    adminBtnText.textContent = 'Admin';
-                    adminBtn.classList.remove('logged-in');
-                    adminPanelContainer.style.display = 'none';
+                    if (adminBtnText) adminBtnText.textContent = 'Admin';
+                    if (adminBtn) adminBtn.classList.remove('logged-in');
+                    if (adminPanelContainer) adminPanelContainer.style.display = 'none';
                 }
-                // Show/hide import controls for unauthenticated
+                // Show/hide import controls for non-admins
                 const isAuth = loggedIn && isAdmin;
-                // The import button in the header is now hidden/disabled for non-admins
-                // We keep it hidden via CSS/JS
                 if (importBtn) {
                     importBtn.style.display = isAuth ? 'inline-flex' : 'none';
                 }
                 if (deleteDataBtn) {
                     deleteDataBtn.style.display = isAuth ? 'inline-flex' : 'none';
                 }
-                // The admin panel already handles its own visibility
             }
 
             // ============================================================
@@ -2103,16 +2113,17 @@
             async function loadDataFromSupabase() {
                 if (!supabase) {
                     showToast('Supabase not configured. Using local data if available.', 'warning', 3000);
-                    // Try to load from IndexedDB as fallback
                     try {
                         const savedData = await loadDataFromDB();
                         if (savedData && Array.isArray(savedData) && savedData.length > 0) {
                             allData = savedData;
                             isDataLoaded = true;
                             applyFiltersAndRender();
-                            dataSourceBadge.textContent = '📁 Local (IndexedDB)';
-                            dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
-                            dataSourceBadge.style.color = '#ffc107';
+                            if (dataSourceBadge) {
+                                dataSourceBadge.textContent = '📁 Local (IndexedDB)';
+                                dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
+                                dataSourceBadge.style.color = '#ffc107';
+                            }
                             updateAdminStats();
                             return;
                         }
@@ -2120,19 +2131,22 @@
                     allData = [];
                     isDataLoaded = false;
                     applyFiltersAndRender();
-                    dataSourceBadge.textContent = '⚠️ No data';
-                    dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
-                    dataSourceBadge.style.color = '#dc3545';
+                    if (dataSourceBadge) {
+                        dataSourceBadge.textContent = '⚠️ No data';
+                        dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
+                        dataSourceBadge.style.color = '#dc3545';
+                    }
                     return;
                 }
 
                 try {
-                    loadingOverlay.classList.add('active');
-                    dataSourceBadge.textContent = '⏳ Loading…';
-                    dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
-                    dataSourceBadge.style.color = '#8abfff';
+                    if (loadingOverlay) loadingOverlay.classList.add('active');
+                    if (dataSourceBadge) {
+                        dataSourceBadge.textContent = '⏳ Loading…';
+                        dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
+                        dataSourceBadge.style.color = '#8abfff';
+                    }
 
-                    // Get current batch ID
                     const { data: batchData, error: batchError } = await supabase
                         .from('app_state')
                         .select('value')
@@ -2144,22 +2158,22 @@
                     let batchId = batchData ? batchData.value : null;
 
                     if (!batchId) {
-                        // No data in Supabase
                         allData = [];
                         isDataLoaded = false;
                         currentBatchId = null;
                         applyFiltersAndRender();
-                        dataSourceBadge.textContent = '📭 No data (Supabase)';
-                        dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
-                        dataSourceBadge.style.color = '#ffc107';
+                        if (dataSourceBadge) {
+                            dataSourceBadge.textContent = '📭 No data (Supabase)';
+                            dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
+                            dataSourceBadge.style.color = '#ffc107';
+                        }
                         updateAdminStats();
-                        loadingOverlay.classList.remove('active');
+                        if (loadingOverlay) loadingOverlay.classList.remove('active');
                         return;
                     }
 
                     currentBatchId = batchId;
 
-                    // Fetch data for this batch
                     const { data: rows, error: dataError } = await supabase
                         .from('inventory_items')
                         .select('data')
@@ -2177,7 +2191,6 @@
                         showToast('No data found in Supabase', 'warning', 3000);
                     }
 
-                    // Get last updated info
                     const { data: updatedData, error: updatedError } = await supabase
                         .from('app_state')
                         .select('value')
@@ -2185,18 +2198,18 @@
                         .maybeSingle();
 
                     if (!updatedError && updatedData) {
-                        // Store last updated time for display
                         localStorage.setItem('last_updated', updatedData.value);
                     }
 
-                    dataSourceBadge.textContent = `☁️ Supabase (${allData.length} records)`;
-                    dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
-                    dataSourceBadge.style.color = '#8abfff';
+                    if (dataSourceBadge) {
+                        dataSourceBadge.textContent = `☁️ Supabase (${allData.length} records)`;
+                        dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
+                        dataSourceBadge.style.color = '#8abfff';
+                    }
 
                     applyFiltersAndRender();
                     updateAdminStats();
 
-                    // Apply stored highlights
                     const storedKeys = loadHighlights();
                     if (storedKeys && storedKeys.length > 0) {
                         applyStoredHighlights(storedKeys);
@@ -2208,11 +2221,13 @@
                     allData = [];
                     isDataLoaded = false;
                     applyFiltersAndRender();
-                    dataSourceBadge.textContent = '❌ Error loading';
-                    dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
-                    dataSourceBadge.style.color = '#dc3545';
+                    if (dataSourceBadge) {
+                        dataSourceBadge.textContent = '❌ Error loading';
+                        dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
+                        dataSourceBadge.style.color = '#dc3545';
+                    }
                 } finally {
-                    loadingOverlay.classList.remove('active');
+                    if (loadingOverlay) loadingOverlay.classList.remove('active');
                 }
             }
 
@@ -2227,20 +2242,19 @@
                 }
 
                 try {
-                    loadingOverlay.classList.add('active');
-                    adminStatusMsg.textContent = '⏳ Importing data…';
-                    adminStatusMsg.className = 'admin-status-msg info';
+                    if (loadingOverlay) loadingOverlay.classList.add('active');
+                    if (adminStatusMsg) {
+                        adminStatusMsg.textContent = '⏳ Importing data…';
+                        adminStatusMsg.className = 'admin-status-msg info';
+                    }
 
-                    // Generate new batch ID
                     const newBatchId = 'batch_' + Date.now();
 
-                    // Prepare data for insertion
                     const items = dataRows.map(row => ({
                         batch_id: newBatchId,
                         data: row
                     }));
 
-                    // Insert in chunks to avoid large payload issues
                     const chunkSize = 500;
                     let insertedCount = 0;
                     for (let i = 0; i < items.length; i += chunkSize) {
@@ -2250,10 +2264,11 @@
                             .insert(chunk);
                         if (insertError) throw insertError;
                         insertedCount += chunk.length;
-                        adminStatusMsg.textContent = `⏳ Importing… ${insertedCount}/${items.length} rows`;
+                        if (adminStatusMsg) {
+                            adminStatusMsg.textContent = `⏳ Importing… ${insertedCount}/${items.length} rows`;
+                        }
                     }
 
-                    // Update app_state with new batch ID
                     const { error: batchUpdateError } = await supabase
                         .from('app_state')
                         .upsert([
@@ -2265,7 +2280,6 @@
 
                     if (batchUpdateError) throw batchUpdateError;
 
-                    // Delete old data (cleanup)
                     if (currentBatchId) {
                         const { error: deleteError } = await supabase
                             .from('inventory_items')
@@ -2273,32 +2287,31 @@
                             .eq('batch_id', currentBatchId);
                         if (deleteError) {
                             console.warn('Error deleting old batch:', deleteError);
-                            // Continue - the new data is already active
                         }
                     }
 
                     currentBatchId = newBatchId;
-
-                    // Reload data
                     await loadDataFromSupabase();
 
-                    adminStatusMsg.textContent = `✅ Successfully imported ${items.length} records from "${fileName || 'file'}"`;
-                    adminStatusMsg.className = 'admin-status-msg success';
+                    if (adminStatusMsg) {
+                        adminStatusMsg.textContent = `✅ Successfully imported ${items.length} records from "${fileName || 'file'}"`;
+                        adminStatusMsg.className = 'admin-status-msg success';
+                    }
                     showToast(`✅ Imported ${items.length} records successfully`, 'success', 4000);
-
-                    // Update admin stats
                     updateAdminStats();
 
                     return true;
 
                 } catch (err) {
                     console.error('Import error:', err);
-                    adminStatusMsg.textContent = `❌ Import failed: ${err.message}`;
-                    adminStatusMsg.className = 'admin-status-msg error';
+                    if (adminStatusMsg) {
+                        adminStatusMsg.textContent = `❌ Import failed: ${err.message}`;
+                        adminStatusMsg.className = 'admin-status-msg error';
+                    }
                     showToast('Import failed: ' + err.message, 'error', 4000);
                     return false;
                 } finally {
-                    loadingOverlay.classList.remove('active');
+                    if (loadingOverlay) loadingOverlay.classList.remove('active');
                 }
             }
 
@@ -2306,28 +2319,27 @@
             //  ADMIN STATS
             // ============================================================
             function updateAdminStats() {
-                adminRecordCount.textContent = allData.length;
-                if (allData.length > 0) {
+                if (adminRecordCount) adminRecordCount.textContent = allData.length;
+                if (adminLastUpdated) {
                     const lastUpdated = localStorage.getItem('last_updated');
                     if (lastUpdated) {
                         adminLastUpdated.textContent = formatDateForDisplay(lastUpdated);
                     } else {
-                        adminLastUpdated.textContent = 'Today';
+                        adminLastUpdated.textContent = '—';
                     }
-                    adminFileName.textContent = localStorage.getItem('file_name') || 'inventory_data.xlsx';
-                } else {
-                    adminLastUpdated.textContent = '—';
-                    adminFileName.textContent = '—';
                 }
-                // Update record badge
-                recordBadge.textContent = allData.length + ' records';
+                if (adminFileName) {
+                    const fileName = localStorage.getItem('file_name') || 'inventory_data.xlsx';
+                    adminFileName.textContent = allData.length > 0 ? fileName : '—';
+                }
+                if (recordBadge) recordBadge.textContent = allData.length + ' records';
             }
 
             // ============================================================
             //  APPLY FILTERS AND RENDER
             // ============================================================
             function applyFiltersAndRender() {
-                const term = searchInput.value;
+                const term = searchInput ? searchInput.value : '';
                 searchTerm = term;
 
                 let result = allData.filter(row => matchesSearch(row, term));
@@ -2374,9 +2386,9 @@
                 filteredData.forEach(row => {
                     boxes += parseNumber(row['Boxes']);
                 });
-                sumRecords.textContent = total;
-                sumBoxes.textContent = boxes.toLocaleString();
-                recordBadge.textContent = allData.length + ' records';
+                if (sumRecords) sumRecords.textContent = total;
+                if (sumBoxes) sumBoxes.textContent = boxes.toLocaleString();
+                if (recordBadge) recordBadge.textContent = allData.length + ' records';
             }
 
             // ============================================================
@@ -2417,8 +2429,10 @@
                     });
                     headerRow.appendChild(th);
                 });
-                tableHead.innerHTML = '';
-                tableHead.appendChild(headerRow);
+                if (tableHead) {
+                    tableHead.innerHTML = '';
+                    tableHead.appendChild(headerRow);
+                }
 
                 // Sort indicators
                 document.querySelectorAll('#tableHead th').forEach(th => {
@@ -2433,11 +2447,13 @@
                     .reduce((sum, row) => sum + parseNumber(row['Boxes']), 0);
 
                 if (pageData.length === 0) {
-                    tableBody.innerHTML =
-                        `<tr><td colspan="${DISPLAY_COLUMNS.length}" class="empty-state">
-                            <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                            <p>${allData.length === 0 ? 'No data loaded — import a file to begin.' : 'No matching records'}</p>
-                        </td></tr>`;
+                    if (tableBody) {
+                        tableBody.innerHTML =
+                            `<tr><td colspan="${DISPLAY_COLUMNS.length}" class="empty-state">
+                                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                <p>${allData.length === 0 ? 'No data loaded — import a file to begin.' : 'No matching records'}</p>
+                            </td></tr>`;
+                    }
                 } else {
                     let html = '';
                     pageData.forEach((row, index) => {
@@ -2466,39 +2482,43 @@
                     });
                     html += '</tr>';
 
-                    tableBody.innerHTML = html;
+                    if (tableBody) {
+                        tableBody.innerHTML = html;
 
-                    const rows = tableBody.querySelectorAll('tr:not(.total-highlight-row)');
-                    rows.forEach((tr, idx) => {
-                        tr.addEventListener('click', function() {
-                            const row = pageData[idx];
-                            if (!row) return;
-                            if (highlightedRows.has(row)) {
-                                highlightedRows.delete(row);
-                                this.classList.remove('highlighted');
-                            } else {
-                                highlightedRows.add(row);
-                                this.classList.add('highlighted');
-                                this.classList.add('row-clicked');
-                                setTimeout(() => this.classList.remove('row-clicked'), 300);
-                            }
-                            saveHighlights();
-                            if (showHighlightedOnly) {
-                                applyFiltersAndRender();
-                            } else {
-                                renderTable();
-                                updateHighlightButton();
-                            }
+                        const rows = tableBody.querySelectorAll('tr:not(.total-highlight-row)');
+                        rows.forEach((tr, idx) => {
+                            tr.addEventListener('click', function() {
+                                const row = pageData[idx];
+                                if (!row) return;
+                                if (highlightedRows.has(row)) {
+                                    highlightedRows.delete(row);
+                                    this.classList.remove('highlighted');
+                                } else {
+                                    highlightedRows.add(row);
+                                    this.classList.add('highlighted');
+                                    this.classList.add('row-clicked');
+                                    setTimeout(() => this.classList.remove('row-clicked'), 300);
+                                }
+                                saveHighlights();
+                                if (showHighlightedOnly) {
+                                    applyFiltersAndRender();
+                                } else {
+                                    renderTable();
+                                    updateHighlightButton();
+                                }
+                            });
                         });
-                    });
+                    }
                 }
 
-                paginationInfo.textContent = total === 0 ?
-                    'Showing 0–0 of 0' :
-                    `Showing ${start+1}–${end} of ${total}`;
-                pageNumbers.textContent = `${currentPage} / ${totalPages}`;
-                pagePrev.disabled = currentPage <= 1;
-                pageNext.disabled = currentPage >= totalPages;
+                if (paginationInfo) {
+                    paginationInfo.textContent = total === 0 ?
+                        'Showing 0–0 of 0' :
+                        `Showing ${start+1}–${end} of ${total}`;
+                }
+                if (pageNumbers) pageNumbers.textContent = `${currentPage} / ${totalPages}`;
+                if (pagePrev) pagePrev.disabled = currentPage <= 1;
+                if (pageNext) pageNext.disabled = currentPage >= totalPages;
             }
 
             // ============================================================
@@ -2506,11 +2526,15 @@
             // ============================================================
             function updateHighlightButton() {
                 const count = highlightedRows.size;
-                highlightBtnText.textContent = `Highlighted${count ? ` (${count})` : ''}`;
-                if (showHighlightedOnly) {
-                    highlightToggleBtn.classList.add('active');
-                } else {
-                    highlightToggleBtn.classList.remove('active');
+                if (highlightBtnText) {
+                    highlightBtnText.textContent = `Highlighted${count ? ` (${count})` : ''}`;
+                }
+                if (highlightToggleBtn) {
+                    if (showHighlightedOnly) {
+                        highlightToggleBtn.classList.add('active');
+                    } else {
+                        highlightToggleBtn.classList.remove('active');
+                    }
                 }
             }
 
@@ -2534,14 +2558,14 @@
             //  CLEAR FILTERS
             // ============================================================
             function clearFilterInputs() {
-                filterLocation.value = '';
-                filterModel.value = '';
-                filterPlacedBy.value = '';
-                filterPallet.value = '';
-                filterPlaceFrom.value = '';
-                filterPlaceTo.value = '';
-                filterBoxMin.value = '';
-                filterBoxMax.value = '';
+                if (filterLocation) filterLocation.value = '';
+                if (filterModel) filterModel.value = '';
+                if (filterPlacedBy) filterPlacedBy.value = '';
+                if (filterPallet) filterPallet.value = '';
+                if (filterPlaceFrom) filterPlaceFrom.value = '';
+                if (filterPlaceTo) filterPlaceTo.value = '';
+                if (filterBoxMin) filterBoxMin.value = '';
+                if (filterBoxMax) filterBoxMax.value = '';
             }
 
             // ============================================================
@@ -2549,7 +2573,7 @@
             // ============================================================
             function resetAll() {
                 clearFilterInputs();
-                searchInput.value = '';
+                if (searchInput) searchInput.value = '';
                 searchTerm = '';
                 sortKey = null;
                 sortDir = 'asc';
@@ -2580,8 +2604,7 @@
                 if (!confirmed) return;
 
                 try {
-                    loadingOverlay.classList.add('active');
-                    // Delete all inventory items
+                    if (loadingOverlay) loadingOverlay.classList.add('active');
                     if (currentBatchId) {
                         const { error } = await supabase
                             .from('inventory_items')
@@ -2590,7 +2613,6 @@
                         if (error) throw error;
                     }
 
-                    // Reset app state
                     await supabase
                         .from('app_state')
                         .upsert([
@@ -2609,7 +2631,7 @@
                     showHighlightedOnly = false;
                     sortKey = null;
                     sortDir = 'asc';
-                    searchInput.value = '';
+                    if (searchInput) searchInput.value = '';
                     searchTerm = '';
                     clearFilterInputs();
                     currentPage = 1;
@@ -2617,14 +2639,16 @@
                     isDataLoaded = false;
                     applyFiltersAndRender();
                     updateAdminStats();
-                    dataSourceBadge.textContent = '📭 Data deleted';
-                    dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
-                    dataSourceBadge.style.color = '#dc3545';
+                    if (dataSourceBadge) {
+                        dataSourceBadge.textContent = '📭 Data deleted';
+                        dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
+                        dataSourceBadge.style.color = '#dc3545';
+                    }
                     showToast('All data deleted successfully', 'success', 3000);
                 } catch (err) {
                     showToast('Error deleting data: ' + err.message, 'error', 4000);
                 } finally {
-                    loadingOverlay.classList.remove('active');
+                    if (loadingOverlay) loadingOverlay.classList.remove('active');
                 }
             }
 
@@ -2782,27 +2806,32 @@
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     try {
-                        adminStatusMsg.textContent = '⏳ Reading file…';
-                        adminStatusMsg.className = 'admin-status-msg info';
+                        if (adminStatusMsg) {
+                            adminStatusMsg.textContent = '⏳ Reading file…';
+                            adminStatusMsg.className = 'admin-status-msg info';
+                        }
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                         const json = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
 
                         if (!json || json.length === 0) {
-                            adminStatusMsg.textContent = '❌ No data found in file.';
-                            adminStatusMsg.className = 'admin-status-msg error';
+                            if (adminStatusMsg) {
+                                adminStatusMsg.textContent = '❌ No data found in file.';
+                                adminStatusMsg.className = 'admin-status-msg error';
+                            }
                             showToast('No data found in file.', 'error', 3000);
                             return;
                         }
 
-                        // Validate columns
                         const firstRow = json[0];
                         const missingCols = ALL_COLUMNS.filter(col => !(col in firstRow));
                         if (missingCols.length > 0) {
-                            adminStatusMsg.textContent =
-                                `❌ Missing columns: ${missingCols.join(', ')}. Please ensure the file has the correct structure.`;
-                            adminStatusMsg.className = 'admin-status-msg error';
+                            if (adminStatusMsg) {
+                                adminStatusMsg.textContent =
+                                    `❌ Missing columns: ${missingCols.join(', ')}. Please ensure the file has the correct structure.`;
+                                adminStatusMsg.className = 'admin-status-msg error';
+                            }
                             showToast('Invalid file structure. Missing required columns.', 'error', 4000);
                             return;
                         }
@@ -2818,17 +2847,21 @@
                         const fileName = file.name || 'Unknown';
                         const success = await importDataToSupabase(newData, fileName);
                         if (success) {
-                            adminFileInput.value = '';
+                            if (adminFileInput) adminFileInput.value = '';
                         }
                     } catch (err) {
-                        adminStatusMsg.textContent = `❌ Error: ${err.message}`;
-                        adminStatusMsg.className = 'admin-status-msg error';
+                        if (adminStatusMsg) {
+                            adminStatusMsg.textContent = `❌ Error: ${err.message}`;
+                            adminStatusMsg.className = 'admin-status-msg error';
+                        }
                         showToast('Error reading file: ' + err.message, 'error', 4000);
                     }
                 };
                 reader.onerror = function() {
-                    adminStatusMsg.textContent = '❌ Failed to read file.';
-                    adminStatusMsg.className = 'admin-status-msg error';
+                    if (adminStatusMsg) {
+                        adminStatusMsg.textContent = '❌ Failed to read file.';
+                        adminStatusMsg.className = 'admin-status-msg error';
+                    }
                     showToast('Failed to read file.', 'error', 3000);
                 };
                 reader.readAsArrayBuffer(file);
@@ -2876,9 +2909,9 @@
             // ============================================================
             async function init() {
                 // Setup Supabase
-                initSupabase();
+                supabase = initSupabase();
 
-                // Attach uppercase enforcement
+                // Attach uppercase enforcement (only if elements exist)
                 const textInputs = [
                     searchInput,
                     filterLocation,
@@ -2893,100 +2926,134 @@
                 });
 
                 // --- Admin Login ---
-                adminBtn.addEventListener('click', function() {
-                    if (isAdmin) {
-                        // If already logged in as admin, show panel
-                        adminPanelContainer.style.display = 'block';
-                        updateAdminStats();
-                        return;
-                    }
-                    loginModal.classList.add('active');
-                    loginEmail.value = '';
-                    loginPassword.value = '';
-                    loginError.classList.remove('visible');
-                    loginStatus.innerHTML = '<strong>ℹ️</strong> Enter your admin credentials to access the Admin Panel.';
-                });
+                if (adminBtn) {
+                    adminBtn.addEventListener('click', function() {
+                        if (isAdmin) {
+                            if (adminPanelContainer) {
+                                adminPanelContainer.style.display = 'block';
+                            }
+                            updateAdminStats();
+                            return;
+                        }
+                        if (loginModal) loginModal.classList.add('active');
+                        if (loginEmail) loginEmail.value = '';
+                        if (loginPassword) loginPassword.value = '';
+                        if (loginError) loginError.classList.remove('visible');
+                        if (loginStatus) {
+                            loginStatus.innerHTML = '<strong>ℹ️</strong> Enter your admin credentials to access the Admin Panel.';
+                        }
+                    });
+                }
 
-                loginModalClose.addEventListener('click', function() {
-                    loginModal.classList.remove('active');
-                });
+                if (loginModalClose) {
+                    loginModalClose.addEventListener('click', function() {
+                        if (loginModal) loginModal.classList.remove('active');
+                    });
+                }
 
-                loginModal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        loginModal.classList.remove('active');
-                    }
-                });
+                if (loginModal) {
+                    loginModal.addEventListener('click', function(e) {
+                        if (e.target === this) {
+                            loginModal.classList.remove('active');
+                        }
+                    });
+                }
 
-                loginBtn.addEventListener('click', async function() {
-                    const email = loginEmail.value.trim();
-                    const password = loginPassword.value;
-                    if (!email || !password) {
-                        loginError.textContent = 'Please enter both email and password.';
-                        loginError.classList.add('visible');
-                        return;
-                    }
-                    await loginAdmin(email, password);
-                });
+                if (loginBtn) {
+                    loginBtn.addEventListener('click', async function() {
+                        const email = loginEmail ? loginEmail.value.trim() : '';
+                        const password = loginPassword ? loginPassword.value : '';
+                        if (!email || !password) {
+                            if (loginError) {
+                                loginError.textContent = 'Please enter both email and password.';
+                                loginError.classList.add('visible');
+                            }
+                            return;
+                        }
+                        await loginAdmin(email, password);
+                    });
+                }
 
-                loginEmail.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') loginBtn.click();
-                });
-                loginPassword.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') loginBtn.click();
-                });
+                if (loginEmail) {
+                    loginEmail.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' && loginBtn) loginBtn.click();
+                    });
+                }
+                if (loginPassword) {
+                    loginPassword.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter' && loginBtn) loginBtn.click();
+                    });
+                }
 
-                adminLogoutBtn.addEventListener('click', logoutAdmin);
+                if (adminLogoutBtn) {
+                    adminLogoutBtn.addEventListener('click', logoutAdmin);
+                }
 
                 // --- Admin Panel: File Import ---
-                adminFileInput.addEventListener('change', function(e) {
-                    if (this.files && this.files[0]) {
-                        adminStatusMsg.textContent = `📄 Selected: ${this.files[0].name} (${(this.files[0].size / 1024).toFixed(1)} KB)`;
-                        adminStatusMsg.className = 'admin-status-msg info';
-                    }
-                });
+                if (adminFileInput) {
+                    adminFileInput.addEventListener('change', function(e) {
+                        if (this.files && this.files[0]) {
+                            if (adminStatusMsg) {
+                                adminStatusMsg.textContent = `📄 Selected: ${this.files[0].name} (${(this.files[0].size / 1024).toFixed(1)} KB)`;
+                                adminStatusMsg.className = 'admin-status-msg info';
+                            }
+                        }
+                    });
+                }
 
-                adminImportBtn.addEventListener('click', function() {
-                    if (!isAdmin) {
-                        showToast('Unauthorized. Admin access required.', 'error', 3000);
-                        return;
-                    }
-                    if (!adminFileInput.files || !adminFileInput.files[0]) {
-                        adminStatusMsg.textContent = '⚠️ Please select an Excel file first.';
-                        adminStatusMsg.className = 'admin-status-msg error';
-                        return;
-                    }
-                    handleAdminFileImport(adminFileInput.files[0]);
-                });
+                if (adminImportBtn) {
+                    adminImportBtn.addEventListener('click', function() {
+                        if (!isAdmin) {
+                            showToast('Unauthorized. Admin access required.', 'error', 3000);
+                            return;
+                        }
+                        if (!adminFileInput || !adminFileInput.files || !adminFileInput.files[0]) {
+                            if (adminStatusMsg) {
+                                adminStatusMsg.textContent = '⚠️ Please select an Excel file first.';
+                                adminStatusMsg.className = 'admin-status-msg error';
+                            }
+                            return;
+                        }
+                        handleAdminFileImport(adminFileInput.files[0]);
+                    });
+                }
 
-                adminRefreshBtn.addEventListener('click', async function() {
-                    await loadDataFromSupabase();
-                    showToast('Data refreshed', 'info', 2000);
-                });
+                if (adminRefreshBtn) {
+                    adminRefreshBtn.addEventListener('click', async function() {
+                        await loadDataFromSupabase();
+                        showToast('Data refreshed', 'info', 2000);
+                    });
+                }
 
                 // --- Legacy Import (now hidden for non-admins) ---
-                importBtn.addEventListener('click', function() {
-                    if (!isAdmin) {
-                        showToast('Unauthorized. Admin access required.', 'error', 3000);
-                        return;
-                    }
-                    fileInput.click();
-                });
+                if (importBtn) {
+                    importBtn.addEventListener('click', function() {
+                        if (!isAdmin) {
+                            showToast('Unauthorized. Admin access required.', 'error', 3000);
+                            return;
+                        }
+                        if (fileInput) fileInput.click();
+                    });
+                }
 
-                fileInput.addEventListener('change', function(e) {
-                    if (!isAdmin) {
+                if (fileInput) {
+                    fileInput.addEventListener('change', function(e) {
+                        if (!isAdmin) {
+                            this.value = '';
+                            showToast('Unauthorized. Admin access required.', 'error', 3000);
+                            return;
+                        }
+                        if (this.files && this.files[0]) {
+                            handleAdminFileImport(this.files[0]);
+                        }
                         this.value = '';
-                        showToast('Unauthorized. Admin access required.', 'error', 3000);
-                        return;
-                    }
-                    if (this.files && this.files[0]) {
-                        // Forward to admin import
-                        handleAdminFileImport(this.files[0]);
-                    }
-                    this.value = '';
-                });
+                    });
+                }
 
                 // --- Search ---
-                searchInput.addEventListener('input', debounce(applyFiltersAndRender, 200));
+                if (searchInput) {
+                    searchInput.addEventListener('input', debounce(applyFiltersAndRender, 200));
+                }
 
                 // --- Filters ---
                 const filterInputs = [
@@ -2994,72 +3061,96 @@
                     filterPlaceFrom, filterPlaceTo, filterBoxMin, filterBoxMax
                 ];
                 filterInputs.forEach(inp => {
-                    inp.addEventListener('input', debounce(applyFiltersAndRender, 150));
-                    inp.addEventListener('change', applyFiltersAndRender);
+                    if (inp) {
+                        inp.addEventListener('input', debounce(applyFiltersAndRender, 150));
+                        inp.addEventListener('change', applyFiltersAndRender);
+                    }
                 });
 
                 // --- Toggle Filters ---
                 let filtersVisible = true;
-                toggleFiltersBtn.addEventListener('click', function() {
-                    filtersVisible = !filtersVisible;
-                    filtersSection.classList.toggle('collapsed', !filtersVisible);
-                });
+                if (toggleFiltersBtn) {
+                    toggleFiltersBtn.addEventListener('click', function() {
+                        filtersVisible = !filtersVisible;
+                        if (filtersSection) {
+                            filtersSection.classList.toggle('collapsed', !filtersVisible);
+                        }
+                    });
+                }
 
                 // --- Reset All ---
-                resetAllBtn.addEventListener('click', resetAll);
+                if (resetAllBtn) {
+                    resetAllBtn.addEventListener('click', resetAll);
+                }
 
                 // --- Delete Data (Admin only) ---
-                deleteDataBtn.addEventListener('click', deleteAllData);
+                if (deleteDataBtn) {
+                    deleteDataBtn.addEventListener('click', deleteAllData);
+                }
 
                 // --- Highlight controls ---
-                highlightToggleBtn.addEventListener('click', toggleHighlightFilter);
-                clearHighlightsBtn.addEventListener('click', clearHighlights);
+                if (highlightToggleBtn) {
+                    highlightToggleBtn.addEventListener('click', toggleHighlightFilter);
+                }
+                if (clearHighlightsBtn) {
+                    clearHighlightsBtn.addEventListener('click', clearHighlights);
+                }
 
                 // --- Pagination ---
-                pagePrev.addEventListener('click', function() {
-                    if (currentPage > 1) { currentPage--;
-                        renderTable(); }
-                });
-                pageNext.addEventListener('click', function() {
-                    const totalPages = Math.ceil(filteredData.length / pageSize);
-                    if (currentPage < totalPages) { currentPage++;
-                        renderTable(); }
-                });
-                pageSizeSelect.addEventListener('change', function() {
-                    pageSize = parseInt(this.value, 10);
-                    currentPage = 1;
-                    renderTable();
-                });
+                if (pagePrev) {
+                    pagePrev.addEventListener('click', function() {
+                        if (currentPage > 1) { currentPage--;
+                            renderTable(); }
+                    });
+                }
+                if (pageNext) {
+                    pageNext.addEventListener('click', function() {
+                        const totalPages = Math.ceil(filteredData.length / pageSize);
+                        if (currentPage < totalPages) { currentPage++;
+                            renderTable(); }
+                    });
+                }
+                if (pageSizeSelect) {
+                    pageSizeSelect.addEventListener('change', function() {
+                        pageSize = parseInt(this.value, 10);
+                        currentPage = 1;
+                        renderTable();
+                    });
+                }
 
                 // --- Export ---
-                exportBtn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    exportMenu.classList.toggle('show');
-                });
-                document.addEventListener('click', function() {
-                    exportMenu.classList.remove('show');
-                });
-                exportMenu.querySelectorAll('button').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
+                if (exportBtn) {
+                    exportBtn.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        const format = this.dataset.format;
-                        exportData(format);
-                        exportMenu.classList.remove('show');
+                        if (exportMenu) exportMenu.classList.toggle('show');
                     });
+                }
+                document.addEventListener('click', function() {
+                    if (exportMenu) exportMenu.classList.remove('show');
                 });
+                if (exportMenu) {
+                    exportMenu.querySelectorAll('button').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const format = this.dataset.format;
+                            exportData(format);
+                            if (exportMenu) exportMenu.classList.remove('show');
+                        });
+                    });
+                }
 
                 // --- Keyboard shortcuts ---
                 document.addEventListener('keydown', function(e) {
                     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                         e.preventDefault();
-                        searchInput.focus();
+                        if (searchInput) searchInput.focus();
                     }
                     if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
                         e.preventDefault();
                         toggleHighlightFilter();
                     }
                     if (e.key === 'Escape') {
-                        if (loginModal.classList.contains('active')) {
+                        if (loginModal && loginModal.classList.contains('active')) {
                             loginModal.classList.remove('active');
                         }
                     }
@@ -3067,16 +3158,13 @@
 
                 // --- Check auth and load data ---
                 await checkAuth();
-
-                // Load data from Supabase (or fallback)
                 await loadDataFromSupabase();
 
                 // If no data in Supabase and we have IndexedDB data, offer to import
-                if (allData.length === 0) {
+                if (allData.length === 0 && isAdmin) {
                     try {
                         const savedData = await loadDataFromDB();
-                        if (savedData && Array.isArray(savedData) && savedData.length > 0 && isAdmin) {
-                            // Offer to migrate
+                        if (savedData && Array.isArray(savedData) && savedData.length > 0) {
                             const migrate = confirm(
                                 `Found ${savedData.length} records in local storage (IndexedDB). Would you like to import them to Supabase?`
                             );
@@ -3097,12 +3185,14 @@
 
                 // Update UI
                 updateAdminStats();
-                dataSourceBadge.textContent = allData.length > 0 ?
-                    `☁️ Supabase (${allData.length} records)` :
-                    '📭 No data';
-                if (allData.length === 0) {
-                    dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
-                    dataSourceBadge.style.color = '#ffc107';
+                if (dataSourceBadge) {
+                    dataSourceBadge.textContent = allData.length > 0 ?
+                        `☁️ Supabase (${allData.length} records)` :
+                        '📭 No data';
+                    if (allData.length === 0) {
+                        dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
+                        dataSourceBadge.style.color = '#ffc107';
+                    }
                 }
 
                 showToast('Welcome! Data loaded from Supabase.', 'info', 2000);
