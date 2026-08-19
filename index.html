@@ -15,21 +15,27 @@
         if (typeof XLSX === 'undefined') {
             alert('XLSX library not found.\n\nPlease either:\n1. Connect to the internet to load from CDN, OR\n2. Download xlsx.full.min.js from https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js and place it in the same folder.');
         }
-     <!-- ===== SUPABASE SDK ===== -->
+    </script>
+
+    <!-- ===== SUPABASE SDK - Using a more reliable CDN with a fallback ===== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js">
     </script>
     <script>
-        // Ensure supabase global is available; if not, load it dynamically.
+        // If the primary CDN fails, try an alternative
         if (typeof supabase === 'undefined') {
-            console.warn('Supabase library not loaded via CDN. Loading dynamically...');
+            console.warn('Primary Supabase CDN failed. Trying fallback...');
             document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"><\/script>');
         }
+        // If both fail, show a clear error
+        if (typeof supabase === 'undefined') {
+            console.error('Supabase library could not be loaded. Please check your internet connection.');
+            alert('Supabase library could not be loaded. Please check your internet connection and refresh the page.');
+        }
     </script>
+
     <style>
-        /* ============================================================
-               CSS – Mobile‑First, 100% Responsive
-               Enhanced with Animations & Micro‑interactions
-               ============================================================ */
+        /* ===== Your existing CSS here ===== */
+        /* (Keep all your CSS styles unchanged) */
         * {
             margin: 0;
             padding: 0;
@@ -1626,7 +1632,7 @@
     </div>
 
     <!-- ================================================================
-    SCRIPT – Warehouse Inventory with Supabase + Admin Panel
+    SCRIPT – Warehouse Inventory with Supabase + Admin Panel (FIXED)
     ================================================================ -->
     <script>
         (function() {
@@ -1634,7 +1640,6 @@
 
             // ============================================================
             //  SUPABASE CONFIGURATION
-            //  ⚠️  These values are provided by the user.
             // ============================================================
             const SUPABASE_URL = 'https://hquykobwsnpdkgottjnr.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxdXlrb2J3c25wZGtnb3R0am5yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNTc5OTQsImV4cCI6MjEwMjczMzk5NH0.qf9XhPEOSRfiLQB0i5IvGZSQXEp7b71Oezj-EEy12Ww';
@@ -1711,7 +1716,7 @@
             let searchTerm = '';
             let highlightedRows = new Set();
             let showHighlightedOnly = false;
-            let supabase = null;
+            let supabaseClient = null;
             let currentUser = null;
             let isAdmin = false;
             let currentBatchId = null;
@@ -1952,22 +1957,59 @@
             }
 
             // ============================================================
-            //  SUPABASE INIT (FIXED)
+            //  SUPABASE INIT (FIXED - handles missing library gracefully)
             // ============================================================
             function initSupabase() {
-                // The Supabase CDN exposes the library globally as `supabase`
-                if (typeof supabase === 'undefined' || typeof supabase.createClient !== 'function') {
-                    console.warn('Supabase library not loaded or invalid.');
-                    showToast('Supabase library not loaded. Check your configuration.', 'error', 5000);
+                // Check if the Supabase library is available globally
+                // The UMD build exposes 'supabase' as a global.
+                let supabaseLib = null;
+
+                // Try multiple possible global names
+                if (typeof supabase !== 'undefined') {
+                    supabaseLib = supabase;
+                } else if (typeof window.supabase !== 'undefined') {
+                    supabaseLib = window.supabase;
+                } else if (typeof Supabase !== 'undefined') {
+                    supabaseLib = Supabase;
+                } else if (typeof window.Supabase !== 'undefined') {
+                    supabaseLib = window.Supabase;
+                }
+
+                // If still not found, check if the library might have been loaded but not assigned
+                if (!supabaseLib) {
+                    // Try to find it in the global scope
+                    const globalKeys = Object.keys(window);
+                    for (const key of globalKeys) {
+                        if (key.toLowerCase().includes('supabase') && typeof window[key] === 'object' && window[key] !==
+                            null) {
+                            if (typeof window[key].createClient === 'function') {
+                                supabaseLib = window[key];
+                                console.log(`Found Supabase library at window.${key}`);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!supabaseLib) {
+                    console.error('Supabase library not found. Please check your internet connection.');
+                    showToast('Supabase library not loaded. Please refresh the page or check your internet connection.',
+                        'error', 5000);
                     return null;
                 }
+
                 try {
-                    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    if (typeof supabaseLib.createClient !== 'function') {
+                        console.error('Invalid Supabase library: createClient missing.');
+                        showToast('Invalid Supabase library. Please refresh the page.', 'error', 5000);
+                        return null;
+                    }
+                    const client = supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     console.log('Supabase initialized successfully');
                     return client;
                 } catch (e) {
                     console.error('Supabase init error:', e);
-                    showToast('Failed to initialize Supabase. Check your configuration.', 'error', 5000);
+                    showToast('Failed to initialize Supabase: ' + e.message, 'error', 5000);
                     return null;
                 }
             }
@@ -1976,12 +2018,12 @@
             //  AUTH
             // ============================================================
             async function checkAuth() {
-                if (!supabase) {
+                if (!supabaseClient) {
                     updateAdminUI(false);
                     return;
                 }
                 try {
-                    const { data: { session }, error } = await supabase.auth.getSession();
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
                     if (error) throw error;
                     if (session) {
                         currentUser = session.user;
@@ -2005,7 +2047,7 @@
             async function checkAdminRole(user) {
                 if (!user) { isAdmin = false; return; }
                 try {
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('user_roles')
                         .select('role')
                         .eq('user_id', user.id)
@@ -2019,7 +2061,7 @@
             }
 
             async function loginAdmin(email, password) {
-                if (!supabase) {
+                if (!supabaseClient) {
                     if (loginError) {
                         loginError.textContent = 'Supabase not configured. Please check your configuration.';
                         loginError.classList.add('visible');
@@ -2033,7 +2075,7 @@
                     }
                     if (loginError) loginError.classList.remove('visible');
 
-                    const { data, error } = await supabase.auth.signInWithPassword({
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
                         email: email.trim(),
                         password: password
                     });
@@ -2049,7 +2091,7 @@
                             await loadDataFromSupabase();
                             return true;
                         } else {
-                            await supabase.auth.signOut();
+                            await supabaseClient.auth.signOut();
                             currentUser = null;
                             isAdmin = false;
                             if (loginError) {
@@ -2077,9 +2119,9 @@
             }
 
             async function logoutAdmin() {
-                if (!supabase) return;
+                if (!supabaseClient) return;
                 try {
-                    await supabase.auth.signOut();
+                    await supabaseClient.auth.signOut();
                     currentUser = null;
                     isAdmin = false;
                     updateAdminUI(false);
@@ -2115,7 +2157,7 @@
             //  SUPABASE DATA OPERATIONS
             // ============================================================
             async function loadDataFromSupabase() {
-                if (!supabase) {
+                if (!supabaseClient) {
                     showToast('Supabase not configured. Using local data if available.', 'warning', 3000);
                     try {
                         const savedData = await loadDataFromDB();
@@ -2151,7 +2193,7 @@
                         dataSourceBadge.style.color = '#8abfff';
                     }
 
-                    const { data: batchData, error: batchError } = await supabase
+                    const { data: batchData, error: batchError } = await supabaseClient
                         .from('app_state')
                         .select('value')
                         .eq('key', 'current_batch_id')
@@ -2178,7 +2220,7 @@
 
                     currentBatchId = batchId;
 
-                    const { data: rows, error: dataError } = await supabase
+                    const { data: rows, error: dataError } = await supabaseClient
                         .from('inventory_items')
                         .select('data')
                         .eq('batch_id', batchId);
@@ -2195,7 +2237,7 @@
                         showToast('No data found in Supabase', 'warning', 3000);
                     }
 
-                    const { data: updatedData, error: updatedError } = await supabase
+                    const { data: updatedData, error: updatedError } = await supabaseClient
                         .from('app_state')
                         .select('value')
                         .eq('key', 'last_updated')
@@ -2236,7 +2278,7 @@
             }
 
             async function importDataToSupabase(dataRows, fileName) {
-                if (!supabase) {
+                if (!supabaseClient) {
                     showToast('Supabase not configured. Cannot import.', 'error', 4000);
                     return false;
                 }
@@ -2263,7 +2305,7 @@
                     let insertedCount = 0;
                     for (let i = 0; i < items.length; i += chunkSize) {
                         const chunk = items.slice(i, i + chunkSize);
-                        const { error: insertError } = await supabase
+                        const { error: insertError } = await supabaseClient
                             .from('inventory_items')
                             .insert(chunk);
                         if (insertError) throw insertError;
@@ -2273,7 +2315,7 @@
                         }
                     }
 
-                    const { error: batchUpdateError } = await supabase
+                    const { error: batchUpdateError } = await supabaseClient
                         .from('app_state')
                         .upsert([
                             { key: 'current_batch_id', value: newBatchId },
@@ -2285,7 +2327,7 @@
                     if (batchUpdateError) throw batchUpdateError;
 
                     if (currentBatchId) {
-                        const { error: deleteError } = await supabase
+                        const { error: deleteError } = await supabaseClient
                             .from('inventory_items')
                             .delete()
                             .eq('batch_id', currentBatchId);
@@ -2610,14 +2652,14 @@
                 try {
                     if (loadingOverlay) loadingOverlay.classList.add('active');
                     if (currentBatchId) {
-                        const { error } = await supabase
+                        const { error } = await supabaseClient
                             .from('inventory_items')
                             .delete()
                             .eq('batch_id', currentBatchId);
                         if (error) throw error;
                     }
 
-                    await supabase
+                    await supabaseClient
                         .from('app_state')
                         .upsert([
                             { key: 'current_batch_id', value: null },
@@ -2913,7 +2955,7 @@
             // ============================================================
             async function init() {
                 // Setup Supabase
-                supabase = initSupabase();
+                supabaseClient = initSupabase();
 
                 // Attach uppercase enforcement (only if elements exist)
                 const textInputs = [
@@ -3205,7 +3247,13 @@
             // ============================================================
             //  START
             // ============================================================
-            document.addEventListener('DOMContentLoaded', init);
+            // Wait for the DOM and any dynamically loaded scripts
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                // DOM already loaded, but we might need to wait for scripts
+                setTimeout(init, 100);
+            }
 
         })();
     </script>
