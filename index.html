@@ -2114,126 +2114,147 @@
             // ============================================================
             //  SUPABASE DATA OPS
             // ============================================================
-            async function loadDataFromSupabase() {
-                if (!supabaseClient) {
-                    showToast('Supabase not configured. Using local data if available.', 'warning', 3000);
-                    try {
-                        const savedData = await loadDataFromDB();
-                        if (savedData && Array.isArray(savedData) && savedData.length > 0) {
-                            allData = savedData;
-                            isDataLoaded = true;
-                            applyFiltersAndRender();
-                            if (dataSourceBadge) {
-                                dataSourceBadge.textContent = '📁 Local (IndexedDB)';
-                                dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
-                                dataSourceBadge.style.color = '#ffc107';
-                            }
-                            updateAdminStats();
-                            return;
-                        }
-                    } catch (e) { /* ignore */ }
-                    allData = [];
-                    isDataLoaded = false;
-                    applyFiltersAndRender();
-                    if (dataSourceBadge) {
-                        dataSourceBadge.textContent = '⚠️ No data';
-                        dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
-                        dataSourceBadge.style.color = '#dc3545';
-                    }
-                    return;
+           async function loadDataFromSupabase() {
+    if (!supabaseClient) {
+        showToast('Supabase not configured. Using local data if available.', 'warning', 3000);
+        try {
+            const savedData = await loadDataFromDB();
+            if (savedData && Array.isArray(savedData) && savedData.length > 0) {
+                allData = savedData;
+                isDataLoaded = true;
+                applyFiltersAndRender();
+                if (dataSourceBadge) {
+                    dataSourceBadge.textContent = '📁 Local (IndexedDB)';
+                    dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
+                    dataSourceBadge.style.color = '#ffc107';
                 }
-
-                try {
-                    if (loadingOverlay) loadingOverlay.classList.add('active');
-                    if (dataSourceBadge) {
-                        dataSourceBadge.textContent = '⏳ Loading…';
-                        dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
-                        dataSourceBadge.style.color = '#8abfff';
-                    }
-
-                    const { data: batchData, error: batchError } = await supabaseClient
-                        .from('app_state')
-                        .select('value')
-                        .eq('key', 'current_batch_id')
-                        .maybeSingle();
-
-                    if (batchError) throw batchError;
-
-                    let batchId = batchData ? batchData.value : null;
-
-                    if (!batchId) {
-                        allData = [];
-                        isDataLoaded = false;
-                        currentBatchId = null;
-                        applyFiltersAndRender();
-                        if (dataSourceBadge) {
-                            dataSourceBadge.textContent = '📭 No data (Supabase)';
-                            dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
-                            dataSourceBadge.style.color = '#ffc107';
-                        }
-                        updateAdminStats();
-                        if (loadingOverlay) loadingOverlay.classList.remove('active');
-                        return;
-                    }
-
-                    currentBatchId = batchId;
-
-                    const { data: rows, error: dataError } = await supabaseClient
-                        .from('inventory_items')
-                        .select('data')
-                        .eq('batch_id', batchId);
-
-                    if (dataError) throw dataError;
-
-                    if (rows && rows.length > 0) {
-                        allData = rows.map(r => r.data);
-                        isDataLoaded = true;
-                        showToast(`Loaded ${allData.length} records from Supabase`, 'success', 3000);
-                    } else {
-                        allData = [];
-                        isDataLoaded = false;
-                        showToast('No data found in Supabase', 'warning', 3000);
-                    }
-
-                    const { data: updatedData, error: updatedError } = await supabaseClient
-                        .from('app_state')
-                        .select('value')
-                        .eq('key', 'last_updated')
-                        .maybeSingle();
-
-                    if (!updatedError && updatedData) {
-                        localStorage.setItem('last_updated', updatedData.value);
-                    }
-
-                    if (dataSourceBadge) {
-                        dataSourceBadge.textContent = `☁️ Supabase (${allData.length} records)`;
-                        dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
-                        dataSourceBadge.style.color = '#8abfff';
-                    }
-
-                    applyFiltersAndRender();
-                    updateAdminStats();
-
-                    const storedKeys = loadHighlights();
-                    if (storedKeys && storedKeys.length > 0) {
-                        applyStoredHighlights(storedKeys);
-                    }
-
-                } catch (err) {
-                    console.error('loadDataFromSupabase error:', err);
-                    showToast('Error loading data from Supabase: ' + err.message, 'error', 4000);
-                    allData = [];
-                    isDataLoaded = false;
-                    applyFiltersAndRender();
-                    if (dataSourceBadge) {
-                        dataSourceBadge.textContent = '❌ Error loading';
-                        dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
-                        dataSourceBadge.style.color = '#dc3545';
-                    }
-                } finally {
-                    if (loadingOverlay) loadingOverlay.classList.remove('active');
-                }
+                updateAdminStats();
+                return;
             }
+        } catch (e) { /* ignore */ }
+        allData = [];
+        isDataLoaded = false;
+        applyFiltersAndRender();
+        if (dataSourceBadge) {
+            dataSourceBadge.textContent = '⚠️ No data';
+            dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
+            dataSourceBadge.style.color = '#dc3545';
+        }
+        return;
+    }
+
+    try {
+        if (loadingOverlay) loadingOverlay.classList.add('active');
+        if (dataSourceBadge) {
+            dataSourceBadge.textContent = '⏳ Loading…';
+            dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
+            dataSourceBadge.style.color = '#8abfff';
+        }
+
+        // Get current batch ID
+        const { data: batchData, error: batchError } = await supabaseClient
+            .from('app_state')
+            .select('value')
+            .eq('key', 'current_batch_id')
+            .maybeSingle();
+
+        if (batchError) throw batchError;
+
+        let batchId = batchData ? batchData.value : null;
+
+        if (!batchId) {
+            allData = [];
+            isDataLoaded = false;
+            currentBatchId = null;
+            applyFiltersAndRender();
+            if (dataSourceBadge) {
+                dataSourceBadge.textContent = '📭 No data (Supabase)';
+                dataSourceBadge.style.background = 'rgba(255,193,7,0.2)';
+                dataSourceBadge.style.color = '#ffc107';
+            }
+            updateAdminStats();
+            if (loadingOverlay) loadingOverlay.classList.remove('active');
+            return;
+        }
+
+        currentBatchId = batchId;
+
+        // ----- PAGINATION TO FETCH ALL ROWS -----
+        const PAGE_SIZE = 1000;
+        let allRows = [];
+        let start = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data: rows, error: dataError } = await supabaseClient
+                .from('inventory_items')
+                .select('data')
+                .eq('batch_id', batchId)
+                .range(start, start + PAGE_SIZE - 1);
+
+            if (dataError) throw dataError;
+
+            if (rows && rows.length > 0) {
+                allRows = allRows.concat(rows);
+                start += rows.length;
+                if (rows.length < PAGE_SIZE) {
+                    hasMore = false;
+                }
+            } else {
+                hasMore = false;
+            }
+        }
+
+        if (allRows.length > 0) {
+            allData = allRows.map(r => r.data);
+            isDataLoaded = true;
+            showToast(`Loaded ${allData.length} records from Supabase`, 'success', 3000);
+        } else {
+            allData = [];
+            isDataLoaded = false;
+            showToast('No data found in Supabase', 'warning', 3000);
+        }
+
+        // Get last updated info
+        const { data: updatedData, error: updatedError } = await supabaseClient
+            .from('app_state')
+            .select('value')
+            .eq('key', 'last_updated')
+            .maybeSingle();
+
+        if (!updatedError && updatedData) {
+            localStorage.setItem('last_updated', updatedData.value);
+        }
+
+        if (dataSourceBadge) {
+            dataSourceBadge.textContent = `☁️ Supabase (${allData.length} records)`;
+            dataSourceBadge.style.background = 'rgba(59,158,255,0.2)';
+            dataSourceBadge.style.color = '#8abfff';
+        }
+
+        applyFiltersAndRender();
+        updateAdminStats();
+
+        const storedKeys = loadHighlights();
+        if (storedKeys && storedKeys.length > 0) {
+            applyStoredHighlights(storedKeys);
+        }
+
+    } catch (err) {
+        console.error('loadDataFromSupabase error:', err);
+        showToast('Error loading data from Supabase: ' + err.message, 'error', 4000);
+        allData = [];
+        isDataLoaded = false;
+        applyFiltersAndRender();
+        if (dataSourceBadge) {
+            dataSourceBadge.textContent = '❌ Error loading';
+            dataSourceBadge.style.background = 'rgba(220,53,69,0.2)';
+            dataSourceBadge.style.color = '#dc3545';
+        }
+    } finally {
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+    }
+}
 
             async function importDataToSupabase(dataRows, fileName) {
                 if (!supabaseClient) {
