@@ -15,12 +15,16 @@
         if (typeof XLSX === 'undefined') {
             alert('XLSX library not found.\n\nPlease either:\n1. Connect to the internet to load from CDN, OR\n2. Download xlsx.full.min.js from https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js and place it in the same folder.');
         }
-    </script>
-
-    <!-- ===== SUPABASE SDK ===== -->
+     <!-- ===== SUPABASE SDK ===== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js">
     </script>
-
+    <script>
+        // Ensure supabase global is available; if not, load it dynamically.
+        if (typeof supabase === 'undefined') {
+            console.warn('Supabase library not loaded via CDN. Loading dynamically...');
+            document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"><\/script>');
+        }
+    </script>
     <style>
         /* ============================================================
                CSS – Mobile‑First, 100% Responsive
