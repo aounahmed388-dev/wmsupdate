@@ -1131,7 +1131,7 @@
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        /* Removed .loading-overlay p styles – no longer needed */
+        /* Removed .loading-overlay p styles */
         @keyframes spin {
             to {
                 transform: rotate(360deg);
@@ -1576,13 +1576,12 @@
         <span>
             Developed with <span class="heart">❤</span> by <span class="name">Aoun Ahmed</span>
         </span>
-        <!-- Removed version span -->
+        <!-- Version line removed -->
     </footer>
 
     <!-- ===== LOADING OVERLAY (no text) ===== -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
-        <!-- Removed "Processing data…" paragraph -->
     </div>
 
     <!-- ================================================================
@@ -1785,12 +1784,14 @@
                 return isNaN(d.getTime()) ? null : d;
             }
 
+            // FIXED: Use UTC to avoid timezone shift
             function formatShortDate(val) {
                 if (!val) return '';
                 let d;
                 if (val instanceof Date) {
                     d = val;
                 } else if (typeof val === 'number') {
+                    // Excel serial number (days since 1900)
                     if (val > 100000) {
                         d = new Date((val - 25569) * 86400 * 1000);
                     } else {
@@ -1800,10 +1801,8 @@
                     d = new Date(val);
                 }
                 if (isNaN(d.getTime())) return String(val);
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
+                // Use UTC to preserve the original date as stored in Excel
+                return d.toISOString().split('T')[0];
             }
 
             function formatDateForDisplay(val) {
@@ -2507,7 +2506,7 @@
                         DISPLAY_COLUMNS.forEach(col => {
                             let val = row[col] !== undefined && row[col] !== null ? row[col] : '';
                             if (col === 'Placement Date' || col === 'Received Date') {
-                                val = formatShortDate(val);
+                                val = formatShortDate(val); // Uses UTC fix
                             }
                             html += `<td>${String(val)}</td>`;
                         });
